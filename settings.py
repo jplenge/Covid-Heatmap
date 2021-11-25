@@ -1,0 +1,1 @@
+covid_data_path = "/Users/jplenge/Documents/Programming/Python/Covid_Bokeh_App/data/RKI_COVID19.csv"
