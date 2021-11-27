@@ -1,0 +1,24 @@
+{% extends base %}
+
+{% block title %}Covid Heatmap{% endblock %}
+
+{% block postamble %}
+  <style>
+    {% include 'styles.css' %}
+  </style>
+{% endblock %}
+
+{% block contents %}
+  <div class="content">
+    <h1>Covid Heatmap</h1>
+
+    <p>Diese Website übernimmt COVID-Informationen von der Website des Robert-Koch-Instituts (RKI) und schlüsselt sie sowohl für die Inzidenz- als auch für die Sterberate in die Kategorien Alter, Geschlecht, Bundesland und Zeit auf. Es ist schwierig, diese Faktoren gleichzeitig zu betrachten. Sie können also auswählen, welche Variablen für Sie am wichtigsten sind, um ein Diagramm der gesuchten Daten zu erstellen. Es gibt einige Wochen für bestimmte Gruppen, für die keine Daten erfasst wurden. Diese Punkte sind im Diagramm leer gelassen.</p>
+
+    <p>Auf der RKI-Website können wir die Zahl der geimpften und ungeimpften Fälle nicht abrufen. Wenn jemand weiß, wie man diese Informationen abrufen kann, lassen Sie es uns bitte wissen, damit wir sie auf der Website einfügen können. Sie können uns auch mitteilen, wenn Sie andere Vorschläge haben.</p>
+
+    {{ super() }}
+
+    <p>Datenquellen:</p>
+
+  </div>
+{% endblock %}
