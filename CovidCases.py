@@ -1,5 +1,6 @@
 import datetime
 import pandas as pd
+from pathlib import PurePath
 
 import settings
 
@@ -7,16 +8,16 @@ class CovidCases():
     """"docstring for CovidCases"""
 
     def __init__(self):
-        self.df_rki_raw = pd.read_csv(settings.covid_data_path)
+        self.df_rki_raw = pd.read_csv(PurePath(settings.covid_data_path, 'RKI_COVID19.csv'))
         #self.df_rki_raw['week'] = self.df_rki_raw['Meldedatum'].apply(lambda x: str(x.isocalendar()[0]) + '-' + str(x.isocalendar()[1]).zfill(2))
 
         self.week_list = sorted(self.df_rki_raw['week'].unique().tolist())[:-1]
         self.states_list = sorted(self.df_rki_raw['Bundesland'].unique())
 
         # Read population data from csv file
-        self.df_pop = pd.read_csv("/Users/jplenge/Documents/Programming/Python/Covid_Bokeh_App/data/Altersgruppen_insgesamt.csv")
-        self.df_pop_m = pd.read_csv("/Users/jplenge/Documents/Programming/Python/Covid_Bokeh_App/data/Altersgruppen_maennlich.csv")
-        self.df_pop_w = pd.read_csv("/Users/jplenge/Documents/Programming/Python/Covid_Bokeh_App/data/Altersgruppen_weiblich.csv")
+        self.df_pop = pd.read_csv(PurePath(settings.covid_data_path,'Altersgruppen_insgesamt.csv'))
+        self.df_pop_m = pd.read_csv(PurePath(settings.covid_data_path,'Altersgruppen_maennlich.csv'))
+        self.df_pop_w = pd.read_csv(PurePath(settings.covid_data_path,'Altersgruppen_weiblich.csv'))
 
 
 
@@ -139,9 +140,15 @@ class CovidCases():
     def select_state_agegroup_data(self, geschlecht, meldewoche, kategorie):
         """ select infection cases  """
 
-        selected = self.df_rki_raw \
-            .query(f"week == '{meldewoche}'") \
+
+        if meldewoche == 'Alle':
+            selected = self.df_rki_raw \
+                .query("Altersgruppe != 'unbekannt'")
+        else:
+            selected = self.df_rki_raw \
             .query("Altersgruppe != 'unbekannt'") \
+            .query(f"week == '{meldewoche}'") 
+ 
 
         if geschlecht == 'Alle':
             selected = selected \
@@ -164,16 +171,21 @@ class CovidCases():
     def select_state_gender_data(self, altersgruppe, meldewoche, kategorie):
         """ select infection cases  """
 
-        # check if should use copy()
-        if altersgruppe == 'gesamt':
-            selected =  self.df_rki_raw \
-                .query(f"week == '{meldewoche}'") \
-                .groupby(['Bundesland', 'Geschlecht'], as_index=False)
+        if meldewoche == 'Alle':
+            selected =  self.df_rki_raw 
         else:
             selected = self.df_rki_raw \
                 .query(f"week == '{meldewoche}'") \
+
+        # check if should use copy()
+        if altersgruppe == 'gesamt':
+            selected =  selected.groupby(['Bundesland', 'Geschlecht'], as_index=False)
+        else:
+            selected = selected \
                 .query(f"Altersgruppe == '{altersgruppe}'") \
                 .groupby(['Bundesland', 'Geschlecht'], as_index=False)   
+
+
 
         if kategorie == 'Infektionsfälle':
             selected = selected.agg(cases=('AnzahlFall', 'sum'))
@@ -247,8 +259,12 @@ class CovidCases():
         else:
             selected =  self.df_rki_raw.query(f"Bundesland == '{bundesland}'")  
 
+        if meldewoche == 'Alle':
+            pass
+        else:
+            selected = selected.query(f"week == '{meldewoche}'")
+
         selected = selected \
-            .query(f"week == '{meldewoche}'") \
             .query("Altersgruppe != 'unbekannt'") \
             .groupby(['Altersgruppe', 'Geschlecht'], as_index=False) 
 
