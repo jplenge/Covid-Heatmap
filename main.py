@@ -14,6 +14,7 @@ from bokeh.models import (BasicTicker,
                           MultiSelect,
                           Div,
                           Button,
+                          Spacer,
                           CustomJS)
 from bokeh.plotting import figure
 from bokeh.transform import transform
@@ -32,21 +33,23 @@ cases = CovidCases()
 age_group_selector = Select(title="Altersgruppe", options=['Alle', 'A00-A04', 'A05-A14', 'A15-A34', 'A35-A59', 'A60-A79', 'A80+'], value='Alle')
 gender_selector = Select(title="Geschlecht", options=['Alle', 'Männlich', 'Weiblich'], value='Alle')
 
-mode_selector = Select(title="Kategorie", options=['Infektionsfälle', 'Todesfälle'], value='Infektionsfälle', width=120)
-xaxis_selector = Select(title="x-Achse", options=['Bundesland', 'Meldewoche', 'Altersgruppe', 'Geschlecht'], value='Meldewoche',width=160)
-yaxis_selector = Select(title="y-Achse", options=['Bundesland', 'Meldewoche', 'Altersgruppe', 'Geschlecht'], value='Bundesland', width=160)
+mode_selector = Select(title="Kategorie", options=['Infektionsfälle', 'Todesfälle'], value='Infektionsfälle',)
+xaxis_selector = Select(title="x-Achse", options=['Bundesland', 'Meldewoche', 'Altersgruppe', 'Geschlecht'], value='Meldewoche')
+yaxis_selector = Select(title="y-Achse", options=['Bundesland', 'Meldewoche', 'Altersgruppe', 'Geschlecht'], value='Bundesland')
 
-state_selector = Select(title="Bundesland", options=settings.state_list, value='Bremen')
+state_selector = Select(title="Bundesland", options=['Alle'] + settings.state_list, value='Bremen')
 
-date_range_slider = DateRangeSlider(value=((datetime.datetime.now() - datetime.timedelta(weeks=26)).date(), datetime.datetime.now().date()),
+date_range_slider = DateRangeSlider(value=((datetime.datetime.now() - datetime.timedelta(weeks=12)).date(), datetime.datetime.now().date()),
                                     start=datetime.date(2020, 1, 1),
-                                    end= datetime.datetime.now().date())
+                                    end= datetime.datetime.now().date(),
+                                    format = '%Y-%W',
+                                    step=7)
 
 state_multiselect =  MultiSelect(value=[], options=settings.state_list, height=160)
 week_selector = Select(title="Kalenderwoche", options=cases.week_list, value=cases.week_list[-1])
 reset_states_button = Button(label="Bundesländer zurücksetzen", button_type="success")
 
-generate_heatmap_button = Button(label="Heatmap erzeugen", button_type="success", width=160, height=45)
+generate_heatmap_button = Button(label="Heatmap erzeugen", button_type="success", width=160, height=50)
 
 # change status of widgets
 
@@ -120,7 +123,7 @@ mapper = LinearColorMapper(
 )
 
 p = figure(
-    width=900,
+    width=750,
     height=400,
     title="Covid-Fälle",
     x_range=[],
@@ -144,6 +147,8 @@ p.axis.axis_line_color = None
 p.axis.major_tick_line_color = None
 p.axis.major_label_text_font_size = "12px"
 p.xaxis.major_label_orientation = 1.0
+
+p.title.text_font_size = "14px"
 
 p.tools.append(hover)
 
@@ -175,10 +180,10 @@ def update_hovertool(cat_name1, cat1, cat_name2, cat2):
 def update():
 
     if mode_selector.value == 'Infektionsfälle':
-        color_bar.title = "Infektionen -res / 100000 Einwohner / Woche"
+        #color_bar.title = "Infektionen / 100000 Einwohner / Woche"
+        color_bar.title  = "Todesfälle / 100000 Einwohner / Woche"
     else:
-        print(mode_selector.value)
-        color_bar.update(title = "Todesfälle / 100000 Einwohner / Woche")
+        color_bar.title  = "Todesfälle / 100000 Einwohner / Woche"
 
 
     if (xaxis_selector.value in ['Bundesland', 'Meldewoche']) and yaxis_selector.value in ['Bundesland', 'Meldewoche']:
@@ -199,7 +204,9 @@ def update():
             p.x_range.factors = cases.week_list 
             p.y_range.factors = list(reversed(df['Bundesland'].unique()))
 
-            update_hovertool('Bundesland', 'y', 'Meldewoche', 'x')            
+            update_hovertool('Bundesland', 'y', 'Meldewoche', 'x') 
+
+        p.title.text = f"Kategorie: {mode_selector.value}, Altersgruppe: {age_group_selector.value}, Geschlecht: {gender_selector.value}"           
 
 
     if (xaxis_selector.value in ['Bundesland', 'Altersgruppe']) and yaxis_selector.value in ['Bundesland', 'Altersgruppe']:
@@ -220,6 +227,8 @@ def update():
             p.y_range.factors = list(reversed(df['Bundesland'].unique()))
 
             update_hovertool('Bundesland', 'y', 'Altersgruppe', 'x')
+
+        p.title.text = f"Kategorie: {mode_selector.value}, Meldewoche: {week_selector.value}, Geschlecht: {gender_selector.value}"
 
 
 
@@ -244,6 +253,8 @@ def update():
 
             update_hovertool('Bundesland', 'y', 'Geschlecht', 'x')
 
+        p.title.text = f"Kategorie: {mode_selector.value}, Meldewoche: {week_selector.value},  Altersgruppe: {age_group_selector.value}"
+
 
     if (xaxis_selector.value in ['Meldewoche', 'Altersgruppe']) and yaxis_selector.value in ['Meldewoche', 'Altersgruppe']:
 
@@ -266,6 +277,9 @@ def update():
 
             update_hovertool('Meldewoche', 'y', 'Altersgruppe', 'x')
 
+        p.title.text = f"Kategorie: {mode_selector.value}, Bundesland: {state_selector.value},  Geschlecht: {gender_selector.value}"
+
+
 
     if (xaxis_selector.value in ['Meldewoche', 'Geschlecht']) and yaxis_selector.value in ['Meldewoche', 'Geschlecht']:
 
@@ -287,6 +301,8 @@ def update():
             p.y_range.factors = cases.week_list  
 
             update_hovertool('Meldewoche', 'y', 'Geschlecht', 'x')
+
+            p.title.text = f"Kategorie: {mode_selector.value}, Bundesland: {state_selector.value}, Altersgruppe: {age_group_selector.value}"
 
 
 
@@ -313,7 +329,7 @@ def update():
             update_hovertool('Altersgruppe', 'y', 'Geschlecht', 'x')
 
 
-    p.title.text = f"Kategorie: {mode_selector.value}, Altersgruppe: {age_group_selector.value}, Geschlecht: {gender_selector.value}"
+        p.title.text = f"Kategorie: {mode_selector.value},  Bundesland: {state_selector.value}, Meldewoche: {week_selector.value}"
 
 
     mapper.low=df['inzidenz'].min()
@@ -326,11 +342,8 @@ def update():
         cases=df['cases'],
         population=df['population'],
         )
+
     update_week_range()
-
-
-
-
 
 
 def update_week_range():
@@ -367,12 +380,10 @@ def reset_states():
     update()
 
 
-#mode_selector.on_change('value', lambda attr, old, new: update())
 xaxis_selector.on_change('value', lambda attr, old, new: update_widgets())
 yaxis_selector.on_change('value', lambda attr, old, new: update_widgets())
 
-#age_group_selector.on_change('value', lambda attr, old, new: update())
-#gender_selector.on_change('value', lambda attr, old, new: update())
+
 date_range_slider.on_change('value', lambda attr, old, new: update_week_range())
 state_multiselect.on_change('value', lambda attr, old, new: update_state_range())
 reset_states_button.on_click(reset_states)
@@ -381,17 +392,16 @@ generate_heatmap_button.on_click(update)
 headline1 = Div(text="<H2>Einstellungen</H2> ", width=220, height=50)
 headline2 = Div(text="<H3>Filtermöglichkeiten</H3>", width=220, height=50)
 
-intro = Div(text="<center> <H1>Covid Heatmap</H1> </center> <br> Diese Website übernimmt COVID-Informationen von der Website des Robert-Koch-Instituts (RKI) und schlüsselt sie sowohl für die Inzidenz- als auch für die Sterberate in die Kategorien Alter, Geschlecht, Bundesland und Zeit auf. Es ist schwierig, diese Faktoren gleichzeitig zu betrachten. Sie können also auswählen, welche Variablen für Sie am wichtigsten sind, um ein Diagramm der gesuchten Daten zu erstellen. Es gibt einige Wochen für bestimmte Gruppen, für die keine Daten erfasst wurden. Diese Punkte sind im Diagramm leer gelassen.<br> Auf der RKI-Website können wir die Zahl der geimpften und ungeimpften Fälle nicht abrufen. Wenn jemand weiß, wie man diese Informationen abrufen kann, lassen Sie es uns bitte wissen, damit wir sie auf der Website einfügen können. Sie können uns auch mitteilen, wenn Sie andere Vorschläge haben.", width=1200, height=180)
 
-top_row = row([mode_selector, xaxis_selector, yaxis_selector,  generate_heatmap_button])
+main_inputs = row([mode_selector, xaxis_selector, yaxis_selector, generate_heatmap_button], width=750)
 
-filter_left = column([headline2, age_group_selector, gender_selector], sizing_mode='scale_width')
+filter_left = column([headline2, age_group_selector, gender_selector])
 filter_middle = column([state_multiselect, reset_states_button])
-filter_right = column([state_selector, week_selector])
+filter_right = column([state_selector, week_selector, date_range_slider])
 
-bottom_row = row([filter_left, filter_middle, filter_right])
+filter_inputs = row([filter_left, filter_middle, filter_right], width=750)
 
-l = column([top_row, row([p], sizing_mode='scale_width'), date_range_slider, bottom_row]) 
+l = column([Spacer(height=20), main_inputs, Spacer(height=20), row([p], width=750, sizing_mode="scale_width"), Spacer(height=20), filter_inputs], width=900) 
 
 update_widgets()
 update()

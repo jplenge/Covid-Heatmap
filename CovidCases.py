@@ -7,8 +7,8 @@ class CovidCases():
     """"docstring for CovidCases"""
 
     def __init__(self):
-        self.df_rki_raw = pd.read_csv(settings.covid_data_path, parse_dates = ['Meldedatum', 'Datenstand', 'Refdatum'])
-        self.df_rki_raw['week'] = self.df_rki_raw['Meldedatum'].apply(lambda x: str(x.isocalendar()[0]) + '-' + str(x.isocalendar()[1]).zfill(2))
+        self.df_rki_raw = pd.read_csv(settings.covid_data_path)
+        #self.df_rki_raw['week'] = self.df_rki_raw['Meldedatum'].apply(lambda x: str(x.isocalendar()[0]) + '-' + str(x.isocalendar()[1]).zfill(2))
 
         self.week_list = sorted(self.df_rki_raw['week'].unique().tolist())[:-1]
         self.states_list = sorted(self.df_rki_raw['Bundesland'].unique())
@@ -29,9 +29,7 @@ class CovidCases():
         population=[]
 
         if isinstance(state_series, pd.Series):
-
             if isinstance(age_group, pd.Series):
-                # in this case geslchecht is ont a pd.series
                 for state, age_group_item in zip(state_series.tolist(), age_group.tolist()):
                     if geschlecht == 'M':
                         population.append(self.df_pop_m.query(f"Bundesland == '{state}'")[age_group_item].values[0])
@@ -57,32 +55,55 @@ class CovidCases():
                         else:
                             population.append(self.df_pop.query(f"Bundesland == '{state}'")[age_group].values[0])
         else:
-            # f'{bundesland}', f'{altersgruppe}', x.Geschlecht
             if isinstance(age_group, pd.Series):
                 if isinstance(geschlecht, pd.Series):
                     for age_group_item, gender in zip(age_group.tolist(), geschlecht.tolist()):
-                        if gender == 'M':
-                            population.append(self.df_pop_m.query(f"Bundesland == '{state_series}'")[age_group_item].values[0])
-                        elif gender == 'W':
-                            population.append(self.df_pop_w.query(f"Bundesland == '{state_series}'")[age_group_item].values[0])
+                        if state_series == 'Alle':
+                            if gender == 'M':
+                                population.append(self.df_pop_m[age_group_item].sum())
+                            elif gender == 'W':
+                                population.append(self.df_pop_w[age_group_item].sum())
+                            else:
+                                population.append(self.df_pop[age_group_item].sum())
                         else:
-                            population.append(self.df_pop.query(f"Bundesland == '{state_series}'")[age_group_item].values[0])
+                            if gender == 'M':
+                                population.append(self.df_pop_m.query(f"Bundesland == '{state_series}'")[age_group_item].values[0])
+                            elif gender == 'W':
+                                population.append(self.df_pop_w.query(f"Bundesland == '{state_series}'")[age_group_item].values[0])
+                            else:
+                                population.append(self.df_pop.query(f"Bundesland == '{state_series}'")[age_group_item].values[0])
                 else:
                     for _, age_group_item in age_group.iteritems():
-                        if geschlecht == 'M':
-                            population.append(self.df_pop_m.query(f"Bundesland == '{state_series}'")[age_group_item].values[0])
-                        elif geschlecht == 'W':
-                            population.append(self.df_pop_w.query(f"Bundesland == '{state_series}'")[age_group_item].values[0])
+                        if state_series == 'Alle':
+                            if geschlecht == 'M':
+                                population.append(self.df_pop_m[age_group_item].sum())
+                            elif geschlecht == 'W':
+                                population.append(self.df_pop_w[age_group_item].sum())
+                            else:
+                                population.append(self.df_pop[age_group_item].sum())      
                         else:
-                            population.append(self.df_pop.query(f"Bundesland == '{state_series}'")[age_group_item].values[0])
+                            if geschlecht == 'M':
+                                population.append(self.df_pop_m.query(f"Bundesland == '{state_series}'")[age_group_item].values[0])
+                            elif geschlecht == 'W':
+                                population.append(self.df_pop_w.query(f"Bundesland == '{state_series}'")[age_group_item].values[0])
+                            else:
+                                population.append(self.df_pop.query(f"Bundesland == '{state_series}'")[age_group_item].values[0])
             else:
                 for _, gender_item in geschlecht.iteritems():
-                    if gender_item == 'M':
-                        population.append(self.df_pop_m.query(f"Bundesland == '{state_series}'")[age_group].values[0])
-                    elif gender_item == 'W':
-                        population.append(self.df_pop_w.query(f"Bundesland == '{state_series}'")[age_group].values[0])
+                    if state_series == 'Alle':
+                        if gender_item == 'M':
+                            population.append(self.df_pop_m[age_group].sum())
+                        elif gender_item == 'W':
+                            population.append(self.df_pop_w[age_group].sum())
+                        else:
+                            population.append(self.df_pop[age_group].sum())
                     else:
-                        population.append(self.df_pop.query(f"Bundesland == '{state_series}'")[age_group].values[0])
+                        if gender_item == 'M':
+                            population.append(self.df_pop_m.query(f"Bundesland == '{state_series}'")[age_group].values[0])
+                        elif gender_item == 'W':
+                            population.append(self.df_pop_w.query(f"Bundesland == '{state_series}'")[age_group].values[0])
+                        else:
+                            population.append(self.df_pop.query(f"Bundesland == '{state_series}'")[age_group].values[0])
 
 
         return population
@@ -167,9 +188,12 @@ class CovidCases():
     def select_week_agegroup_data(self, geschlecht, bundesland, kategorie):
         """ select infection cases  """
 
-        selected = self.df_rki_raw \
-            .query(f"Bundesland == '{bundesland}'") \
-            .query("Altersgruppe != 'unbekannt'") 
+        if bundesland == 'Alle':
+            selected = self.df_rki_raw.query("Altersgruppe != 'unbekannt'") 
+        else: 
+            selected = self.df_rki_raw \
+                .query(f"Bundesland == '{bundesland}'") \
+                .query("Altersgruppe != 'unbekannt'") 
 
         if geschlecht == 'Alle':
             selected = selected \
@@ -193,14 +217,16 @@ class CovidCases():
     def select_week_gender_data(self, altersgruppe, bundesland, kategorie):
         """ select infection cases  """
 
-        if altersgruppe == 'gesamt':
-            selected =  self.df_rki_raw \
-                .query(f"Bundesland == '{bundesland}'") \
-                .groupby(['week', 'Geschlecht'], as_index=False) 
+        if bundesland == 'Alle':
+            selected =  self.df_rki_raw 
         else:
-            selected = self.df_rki_raw \
+            selected =  self.df_rki_raw.query(f"Bundesland == '{bundesland}'")  
+
+        if altersgruppe == 'gesamt':
+            selected =  selected.groupby(['week', 'Geschlecht'], as_index=False) 
+        else:
+            selected = selected \
                 .query(f"Altersgruppe == '{altersgruppe}'") \
-                .query(f"Bundesland == '{bundesland}'") \
                 .groupby(['week', 'Geschlecht'], as_index=False) 
 
         if kategorie == 'Infektionsfälle':
@@ -216,9 +242,13 @@ class CovidCases():
     def select_agegroup_gender_data(self, meldewoche, bundesland, kategorie):
         """ select infection cases  """
 
-        selected = self.df_rki_raw \
+        if bundesland == 'Alle':
+            selected =  self.df_rki_raw 
+        else:
+            selected =  self.df_rki_raw.query(f"Bundesland == '{bundesland}'")  
+
+        selected = selected \
             .query(f"week == '{meldewoche}'") \
-            .query(f"Bundesland == '{bundesland}'") \
             .query("Altersgruppe != 'unbekannt'") \
             .groupby(['Altersgruppe', 'Geschlecht'], as_index=False) 
 
