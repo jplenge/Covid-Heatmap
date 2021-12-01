@@ -11,6 +11,8 @@ class CovidCases():
         self.df_rki_raw = pd.read_csv(PurePath(settings.covid_data_path, 'RKI_COVID19.csv'))
         #self.df_rki_raw['week'] = self.df_rki_raw['Meldedatum'].apply(lambda x: str(x.isocalendar()[0]) + '-' + str(x.isocalendar()[1]).zfill(2))
 
+        self.hospitalisierung = pd.read_csv(PurePath(settings.covid_data_path, 'Hospitalisierung.csv'))
+
         self.week_list = sorted(self.df_rki_raw['week'].unique().tolist())[:-1]
         self.states_list = sorted(self.df_rki_raw['Bundesland'].unique())
 

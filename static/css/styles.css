@@ -4,12 +4,24 @@ html {
 body {
     min-width: 600px;
     max-width: 1200px;
-    width: 75%;
+    width: 80%;
     margin: auto;
 }
+
+
+footer {
+    text-align: center;
+
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 0.5em;
+
+}
+
 .content {
     margin: 2em;
 }
+
+
 h1 {
     margin: 2em 0 0 0;
     color: #2e484c;

@@ -1,29 +1,38 @@
-{% extends base %}
+<!doctype html>
 
-{% block title %}Covid Heatmap{% endblock %}
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Covid Heatmaps</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
 
-{% block postamble %}
-  <style>
-    {% include 'styles.css' %}
-  </style>
-{% endblock %}
 
-{% block contents %}
+<body>
   <div class="content">
     <h1>Covid Heatmap</h1>
 
     <p>Diese Website übernimmt <a href="https://npgeo-corona-npgeo-de.hub.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0/explore?showTable=true"> COVID-Informationen </a> von der Website des <a href="https://www.rki.de/DE/Content/InfAZ/N/Neuartiges_Coronavirus/nCoV_node.html;jsessionid=081649DF79DD365A245AA19C1A3CB9E8.internet091#doc13490882bodyText12"> Robert-Koch-Instituts (RKI) </a> und schlüsselt sie sowohl für die Inzidenz- als auch für die Sterberate in die Kategorien Alter, Geschlecht, Bundesland und Zeit auf. Es ist schwierig, diese Faktoren gleichzeitig zu betrachten. Sie können also auswählen, welche Variablen für Sie am wichtigsten sind, um ein Diagramm der gesuchten Daten zu erstellen. Es gibt einige Wochen für bestimmte Gruppen, für die keine Daten erfasst wurden. Diese Punkte sind im Diagramm leer gelassen.</p>
 
-    <p>Auf der RKI-Website können wir die Zahl der geimpften und ungeimpften Fälle nicht abrufen. Wenn jemand weiß, wie man diese Informationen abrufen kann, lassen Sie es uns bitte wissen, damit wir sie auf der Website einfügen können. Sie können uns auch mitteilen, wenn Sie andere Vorschläge haben.</p>
+    <p>Auf der RKI-Website können wir die Zahl der geimpften und ungeimpften Fälle nicht abrufen. Wenn jemand weiß, wie man diese Informationen abrufen kann, lassen Sie es <a href="mailto:juergen@plenge.me">uns</a> bitte wissen, damit wir sie auf der Website einfügen können. Sie können uns auch mitteilen, wenn Sie andere Vorschläge haben.</p>
 
-    {{ super() }}
+    {{script|safe}}
 
-    <p>Datenquellen:</p>
+    <p>Datenquellen:
+      <ul>
+        <li> <a href="https://npgeo-corona-npgeo-de.hub.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0/explore?showTable=true"> Zahlen der täglichen Covid-19 Infektionen des RKI</a> 
 
+         <li> <a href="https://www.regionalstatistik.de/genesis//online?operation=table&code=12411-04-02-4-B&bypass=true&levelindex=1&levelid=1638305745221#abreadcrumb"> Einwohnerzahlen nach Altersgruppe und Geschlecht</a> 
+
+      </ul> 
+    </p>
+    
+  </div>
+</body>
 
   <footer>
-    <a href="https://plenge.me/impressum"> Impressum </a>
+  <a href="https://plenge.me/impressum"> Impressum </a> 
   </footer>
 
-  </div>
-{% endblock %}
+</html>
+

@@ -1,44 +1,55 @@
 import pandas as pd
 import datetime
-
+import asyncio
+from threading import Thread
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
 from bokeh.models import (BasicTicker,
                           ColorBar,
                           ColumnDataSource,
                           LinearColorMapper,
-                          LogColorMapper,
-                          PrintfTickFormatter,
                           HoverTool,
-                          Dropdown,
                           Select,
                           DateRangeSlider,
                           MultiSelect,
                           Div,
                           Button,
-                          Spacer,
-                          CustomJS)
+                          Spacer)
+
 from bokeh.plotting import figure
 from bokeh.transform import transform
-from bokeh.palettes import inferno, mpl
-from bokeh.io import curdoc
-from bokeh.layouts import layout, column, row
-
-from bokeh.server.server import Server
+from bokeh.layouts import layout, column, row, grid
+from bokeh.embed import server_document
+from bokeh.themes import Theme
+from bokeh.server.server import BaseServer
+from bokeh.server.tornado import BokehTornado
 from bokeh.application import Application
 from bokeh.application.handlers.function import FunctionHandler
-from tornado.ioloop import IOLoop
-
+from bokeh.server.util import bind_sockets
+from flask import Flask
+from flask import render_template
 import settings
 from CovidCases import CovidCases
+
+
+
+gender_map = {
+    'Alle' : 'Alle',
+    'Männlich' : 'M',
+    'Weiblich' : 'W'
+}
 
 cases = CovidCases()
 
 
-def main_app(doc):
+def make_doc(doc):
 
-    # change status of widgets
-
+    
     def change_widget_status(age_group_selector_disabled, gender_selector_disabled, state_multiselect_disabled,reset_states_button_disabled, 
         state_selector_disabled, week_selector_disabled, date_range_slider_disabled):
+        '''
+            function to enable/disable set of widgets
+        '''
 
         age_group_selector.disabled = age_group_selector_disabled
         gender_selector.disabled = gender_selector_disabled
@@ -50,12 +61,14 @@ def main_app(doc):
 
 
     def update_widgets():
+        '''
+            change widget status depending on selected quantities to plot
+        '''
         if xaxis_selector.value == yaxis_selector.value:
             generate_heatmap_button.disabled = True
             return
         else:
             generate_heatmap_button.disabled = False
-
 
         if (xaxis_selector.value in ['Bundesland', 'Meldewoche']) and yaxis_selector.value in ['Bundesland', 'Meldewoche']:
             change_widget_status(False, False, False, False, True, True, False)
@@ -83,15 +96,13 @@ def main_app(doc):
 
 
     def update_hovertool(cat_name1, cat1, cat_name2, cat2):
-          hover.tooltips = [("Inzidenz", "@inzidenz{%0.2f}"),
-                  (f"{cat_name1}:", f"@{cat1}"),
-                  (f"{cat_name2}:", f"@{cat2}"),
-                  ("Fälle:", "@cases"),
-                  ("Einwohnerzahl:", "@population")
-                ]
+        hover.tooltips = [("Inzidenz", "@inzidenz{%0.2f}"),
+        (f"{cat_name1}:", f"@{cat1}"),
+        (f"{cat_name2}:", f"@{cat2}"),
+        ("Fälle:", "@cases"),
+        ("Einwohnerzahl:", "@population")]
 
 
-    # functions to update data
     def update():
 
         if mode_selector.value == 'Infektionsfälle':
@@ -300,6 +311,7 @@ def main_app(doc):
 
 
     # Generate input controls
+
     age_group_selector = Select(
         title="Altersgruppe",
         options=['Alle', 'A00-A04', 'A05-A14', 'A15-A34', 'A35-A59', 'A60-A79', 'A80+'], 
@@ -312,7 +324,7 @@ def main_app(doc):
 
     mode_selector = Select(
         title="Kategorie", 
-        options=['Infektionsfälle', 'Todesfälle'], value='Infektionsfälle')
+        options=['Infektionsfälle', 'Todesfälle', 'Hospitalisierung'], value='Infektionsfälle')
 
     xaxis_selector = Select(
         title="x-Achse", 
@@ -354,15 +366,14 @@ def main_app(doc):
     generate_heatmap_button = Button(
         label="Heatmap erzeugen", 
         button_type="success", 
-        width=160, 
+        width=120, 
         height=50)
 
 
+    # Initial setup of figure
 
-    # Create Column Data Source that will be used by the plot
     source = ColumnDataSource(data=dict(x=[], y=[], inzidenz=[], cases=[], population=[]))
-
-    # Setup 
+ 
     hover = HoverTool(
         tooltips=[("Inzidenz", "@inzidenz{%0,0.2f}"),
                   ("Bundesland", "@y"),
@@ -373,9 +384,8 @@ def main_app(doc):
         formatters={'@inzidenz': 'printf'}
     )
 
-
     mapper = LinearColorMapper(
-        palette='Turbo256',  #inferno(256),
+        palette='Turbo256',  
         low=0,
         high=500,
         nan_color = 'gray'
@@ -402,14 +412,13 @@ def main_app(doc):
         fill_color=transform('inzidenz', mapper)
         )
 
+    p.toolbar.logo = None
+    p.tools.append(hover)
     p.axis.axis_line_color = None
     p.axis.major_tick_line_color = None
     p.axis.major_label_text_font_size = "12px"
     p.xaxis.major_label_orientation = 1.0
-
     p.title.text_font_size = "14px"
-
-    p.tools.append(hover)
 
     color_bar = ColorBar(color_mapper=mapper,
                          ticker=BasicTicker()
@@ -417,54 +426,66 @@ def main_app(doc):
 
     p.add_layout(color_bar, 'right')
 
-
-    # 
-    gender_map = {
-        'Alle' : 'Alle',
-        'Männlich' : 'M',
-        'Weiblich' : 'W'
-    }
-
-
-
     xaxis_selector.on_change('value', lambda attr, old, new: update_widgets())
     yaxis_selector.on_change('value', lambda attr, old, new: update_widgets())
 
 
     date_range_slider.on_change('value', lambda attr, old, new: update_week_range())
     state_multiselect.on_change('value', lambda attr, old, new: update_state_range())
-    reset_states_button.on_click(reset_states)
+    
+    #reset_states_button.on_click(reset_states)
     generate_heatmap_button.on_click(update)
 
 
 
-    headline2 = Div(text="<H2>Filtermöglichkeiten</H2> ", width=100, height=50)
+    # final layout
 
-    main_inputs = row([mode_selector, xaxis_selector, yaxis_selector, generate_heatmap_button], width=800)
+    main_inputs = row([mode_selector, xaxis_selector, yaxis_selector], sizing_mode='stretch_width')
 
-    filter_left = column([headline2, age_group_selector, gender_selector])
-    filter_middle = column([state_multiselect, reset_states_button])
-    filter_right = column([state_selector, week_selector, date_range_slider])
+    bottom_left = column([age_group_selector, gender_selector], sizing_mode='stretch_width')
+    bottom_right = column([state_selector, week_selector, date_range_slider], sizing_mode='stretch_width')
 
-    filter_inputs = row([filter_left, filter_middle, filter_right], width=800)
+    bottom = row([column([generate_heatmap_button], sizing_mode='stretch_width'), Spacer(width=20), bottom_left, Spacer(width=20), bottom_right])
 
-    l = column([Spacer(height=20), main_inputs, Spacer(height=20), row([p], width=800, sizing_mode="scale_width"), Spacer(height=20), filter_inputs], width=800) 
+    l = grid([Spacer(height=30), main_inputs, Spacer(height=20), row([p], sizing_mode="scale_width"), Spacer(height=20), bottom], sizing_mode='stretch_width') 
 
     update_widgets()
     update()
 
     doc.add_root(l)
     doc.title = "Covid Heatmap"
-    doc.templates = "./templates/index.html"
+    # doc.theme = Theme(filename="theme.yaml")
 
 
-print("Preparing a bokeh application.")
-io_loop = IOLoop.current()
-bokeh_app = Application(FunctionHandler(main_app))
 
-server = Server({"/": bokeh_app}, io_loop=io_loop, port=9001)
-server.start()
 
-io_loop.add_callback(server.show, "/")
-io_loop.start()
+# Flask and Bokeh server setup
+
+app = Flask(__name__)
+
+sockets, port = bind_sockets(settings.bokeh_server_address, settings.bokeh_server_port)
+
+bkapp = Application(FunctionHandler(make_doc))
+
+@app.route('/', methods=['GET'])
+def bkapp_page():
+    script = server_document(settings.bokeh_server_url)
+    return render_template("index.html", script=script)
+
+
+def bk_worker():
+    asyncio.set_event_loop(asyncio.new_event_loop())
+
+    bokeh_tornado = BokehTornado({'/bokehserver': bkapp}, extra_websocket_origins=[settings.flask_server_address])
+    bokeh_http = HTTPServer(bokeh_tornado)
+    bokeh_http.add_sockets(sockets)
+
+    server = BaseServer(IOLoop.current(), bokeh_tornado, bokeh_http)
+    server.start()
+    server.io_loop.start()
+
+t = Thread(target=bk_worker)
+t.daemon = True
+t.start()
+
 
