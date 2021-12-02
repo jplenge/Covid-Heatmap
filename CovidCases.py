@@ -13,7 +13,8 @@ class CovidCases():
 
         self.hospitalisierung = pd.read_csv(PurePath(settings.covid_data_path, 'Hospitalisierung.csv'))
 
-        self.week_list = sorted(self.df_rki_raw['week'].unique().tolist())[:-1]
+        self.week_list = sorted(self.df_rki_raw['week'].unique().tolist())
+        
         self.states_list = sorted(self.df_rki_raw['Bundesland'].unique())
 
         # Read population data from csv file
@@ -116,58 +117,82 @@ class CovidCases():
     def select_state_week_data(self, altersgruppe, geschlecht, kategorie):
         """ select infection cases  """
 
-        if altersgruppe == 'gesamt':
-            selected =  self.df_rki_raw     # check if should use copy()
+        if kategorie == "Hospitalisierung":
+            selected_altersgruppe = {'gesamt' : 'A00+'}.get(altersgruppe, altersgruppe)
+            return self.hospitalisierung \
+                .query(f"Bundesland != 'Bundesgebiet'") \
+                .query(f"Altersgruppe == '{selected_altersgruppe}'") \
+                .rename(columns={'7T_Hospitalisierung_Faelle': 'cases', '7T_Hospitalisierung_Inzidenz' : 'inzidenz'}) \
+                .assign(population = lambda x: self.get_agegroup_population(x.Bundesland, f'{altersgruppe}', 'Alle')) 
         else:
-            selected = self.df_rki_raw.query(f"Altersgruppe == '{altersgruppe}'")
+            if altersgruppe == 'gesamt':
+                selected =  self.df_rki_raw     # check if should use copy()
+            else:
+                selected = self.df_rki_raw.query(f"Altersgruppe == '{altersgruppe}'")
 
-        if geschlecht == 'Alle':
-            selected = selected \
-                .groupby(['Bundesland', 'week'], as_index=False)
-        else:
-            selected = selected \
-                .query(f"Geschlecht == '{geschlecht}'") \
-                .groupby(['Bundesland', 'week'], as_index=False) 
+            if geschlecht == 'Alle':
+                selected = selected \
+                    .groupby(['Bundesland', 'week'], as_index=False)
+            else:
+                selected = selected \
+                    .query(f"Geschlecht == '{geschlecht}'") \
+                    .groupby(['Bundesland', 'week'], as_index=False) 
 
-        if kategorie == 'Infektionsfälle':
-            selected = selected.agg(cases=('AnzahlFall', 'sum'))
-        else:
-            selected = selected.agg(cases=('AnzahlTodesfall', 'sum'))
+            if kategorie == 'Infektionsfälle':
+                selected = selected.agg(cases=('AnzahlFall', 'sum'))
+            else:
+                selected = selected.agg(cases=('AnzahlTodesfall', 'sum'))
 
-        return selected \
-            .assign(population = lambda x: self.get_agegroup_population(x.Bundesland, f'{altersgruppe}', f'{geschlecht}')) \
-            .assign(inzidenz = lambda x: x.cases * 100000 / x.population)
+            return selected \
+                .assign(population = lambda x: self.get_agegroup_population(x.Bundesland, f'{altersgruppe}', f'{geschlecht}')) \
+                .assign(inzidenz = lambda x: x.cases * 100000 / x.population)
 
 
     def select_state_agegroup_data(self, geschlecht, meldewoche, kategorie):
         """ select infection cases  """
 
-
-        if meldewoche == 'Alle':
-            selected = self.df_rki_raw \
-                .query("Altersgruppe != 'unbekannt'")
+        if kategorie == "Hospitalisierung":
+            if meldewoche == 'Alle':
+                return self.hospitalisierung.query("Altersgruppe != 'A00+'") \
+                            .query(f"Bundesland != 'Bundesgebiet'") \
+                            .rename(columns={'7T_Hospitalisierung_Faelle': 'AnzahlFall'}) \
+                            .groupby(['Bundesland', 'Altersgruppe'], as_index=False) \
+                            .agg(cases=('AnzahlFall', 'sum')) \
+                            .assign(population = lambda x: self.get_agegroup_population(x.Bundesland, x.Altersgruppe, 'Alle')) \
+                            .assign(inzidenz = lambda x: x.cases * 100000 / x.population)
+                return
+            else:
+                return self.hospitalisierung.query("Altersgruppe != 'A00+'") \
+                            .query(f"week == '{meldewoche}'") \
+                            .query(f"Bundesland != 'Bundesgebiet'") \
+                            .assign(population = lambda x: self.get_agegroup_population(x.Bundesland, x.Altersgruppe, 'Alle')) \
+                            .rename(columns={'7T_Hospitalisierung_Inzidenz': 'inzidenz', '7T_Hospitalisierung_Faelle': 'cases'}) 
         else:
-            selected = self.df_rki_raw \
-            .query("Altersgruppe != 'unbekannt'") \
-            .query(f"week == '{meldewoche}'") 
- 
+            if meldewoche == 'Alle':
+                selected = self.df_rki_raw \
+                    .query("Altersgruppe != 'unbekannt'")
+            else:
+                selected = self.df_rki_raw \
+                .query("Altersgruppe != 'unbekannt'") \
+                .query(f"week == '{meldewoche}'") 
+     
 
-        if geschlecht == 'Alle':
-            selected = selected \
-                .groupby(['Bundesland', 'Altersgruppe'], as_index=False)
-        else:
-            selected = selected \
-                .query(f"Geschlecht == '{geschlecht}'") \
-                .groupby(['Bundesland', 'Altersgruppe'], as_index=False) 
+            if geschlecht == 'Alle':
+                selected = selected \
+                    .groupby(['Bundesland', 'Altersgruppe'], as_index=False)
+            else:
+                selected = selected \
+                    .query(f"Geschlecht == '{geschlecht}'") \
+                    .groupby(['Bundesland', 'Altersgruppe'], as_index=False) 
 
-        if kategorie == 'Infektionsfälle':
-            selected = selected.agg(cases=('AnzahlFall', 'sum'))
-        else:
-            selected = selected.agg(cases=('AnzahlTodesfall', 'sum'))
+            if kategorie == 'Infektionsfälle':
+                selected = selected.agg(cases=('AnzahlFall', 'sum'))
+            else:
+                selected = selected.agg(cases=('AnzahlTodesfall', 'sum'))
 
-        return selected \
-            .assign(population = lambda x: self.get_agegroup_population(x.Bundesland, x.Altersgruppe, f'{geschlecht}')) \
-            .assign(inzidenz = lambda x: x.cases * 100000 / x.population)
+            return selected \
+                .assign(population = lambda x: self.get_agegroup_population(x.Bundesland, x.Altersgruppe, f'{geschlecht}')) \
+                .assign(inzidenz = lambda x: x.cases * 100000 / x.population)
 
 
     def select_state_gender_data(self, altersgruppe, meldewoche, kategorie):
@@ -202,29 +227,41 @@ class CovidCases():
     def select_week_agegroup_data(self, geschlecht, bundesland, kategorie):
         """ select infection cases  """
 
-        if bundesland == 'Alle':
-            selected = self.df_rki_raw.query("Altersgruppe != 'unbekannt'") 
-        else: 
-            selected = self.df_rki_raw \
-                .query(f"Bundesland == '{bundesland}'") \
-                .query("Altersgruppe != 'unbekannt'") 
+        if kategorie == "Hospitalisierung":
+            selected_state = {'Alle' : 'Bundesgebiet'}.get(bundesland, bundesland)
 
-        if geschlecht == 'Alle':
-            selected = selected \
-                .groupby(['week', 'Altersgruppe'], as_index=False)
-        else:
-            selected = selected \
-                .query(f"Geschlecht == '{geschlecht}'") \
-                .groupby(['week', 'Altersgruppe'], as_index=False) 
- 
-        if kategorie == 'Infektionsfälle':
-            selected = selected.agg(cases=('AnzahlFall', 'sum'))
-        else:
-            selected = selected.agg(cases=('AnzahlTodesfall', 'sum'))
+            return self.hospitalisierung.query("Altersgruppe != 'A00+'") \
+                            .query(f"Bundesland == '{selected_state}'") \
+                            .rename(columns={'7T_Hospitalisierung_Faelle': 'AnzahlFall'}) \
+                            .groupby(['week', 'Altersgruppe'], as_index=False) \
+                            .agg(cases=('AnzahlFall', 'sum')) \
+                            .assign(population = lambda x: self.get_agegroup_population(f'{bundesland}', x.Altersgruppe, 'Alle')) \
+                            .assign(inzidenz = lambda x: x.cases * 100000 / x.population)
 
-        return selected \
-            .assign(population = lambda x: self.get_agegroup_population(f'{bundesland}', x.Altersgruppe, f'{geschlecht}')) \
-            .assign(inzidenz = lambda x: x.cases * 100000 / x.population)
+        else:
+            if bundesland == 'Alle':
+                selected = self.df_rki_raw.query("Altersgruppe != 'unbekannt'") 
+            else: 
+                selected = self.df_rki_raw \
+                    .query(f"Bundesland == '{bundesland}'") \
+                    .query("Altersgruppe != 'unbekannt'") 
+
+            if geschlecht == 'Alle':
+                selected = selected \
+                    .groupby(['week', 'Altersgruppe'], as_index=False)
+            else:
+                selected = selected \
+                    .query(f"Geschlecht == '{geschlecht}'") \
+                    .groupby(['week', 'Altersgruppe'], as_index=False) 
+     
+            if kategorie == 'Infektionsfälle':
+                selected = selected.agg(cases=('AnzahlFall', 'sum'))
+            else:
+                selected = selected.agg(cases=('AnzahlTodesfall', 'sum'))
+
+            return selected \
+                .assign(population = lambda x: self.get_agegroup_population(f'{bundesland}', x.Altersgruppe, f'{geschlecht}')) \
+                .assign(inzidenz = lambda x: x.cases * 100000 / x.population)
 
 
 

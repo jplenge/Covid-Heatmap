@@ -64,18 +64,33 @@ def make_doc(doc):
         '''
             change widget status depending on selected quantities to plot
         '''
+
         if xaxis_selector.value == yaxis_selector.value:
             generate_heatmap_button.disabled = True
             return
         else:
             generate_heatmap_button.disabled = False
 
+
+        if (mode_selector.value == 'Hospitalisierung') and ((xaxis_selector.value == 'Geschlecht') or (yaxis_selector.value == 'Geschlecht')):
+            generate_heatmap_button.disabled = True
+            return
+        else:
+             generate_heatmap_button.disabled = False
+
         if (xaxis_selector.value in ['Bundesland', 'Meldewoche']) and yaxis_selector.value in ['Bundesland', 'Meldewoche']:
-            change_widget_status(False, False, False, False, True, True, False)
+            if mode_selector.value == 'Hospitalisierung':
+                change_widget_status(False, True, False, False, True, True, False) 
+            else:
+                change_widget_status(False, False, False, False, True, True, False)
             return
 
         if (xaxis_selector.value in ['Bundesland', 'Altersgruppe']) and yaxis_selector.value in ['Bundesland', 'Altersgruppe']:
-            change_widget_status(True, False, False, False, True, False, True)
+
+            if mode_selector.value == 'Hospitalisierung':
+                change_widget_status(True, True, False, False, True, False, True) 
+            else:
+                change_widget_status(True, False, False, False, True, False, True)
             return 
 
         if (xaxis_selector.value in ['Bundesland', 'Geschlecht']) and yaxis_selector.value in ['Bundesland', 'Geschlecht']:
@@ -83,7 +98,14 @@ def make_doc(doc):
             return 
 
         if (xaxis_selector.value in ['Meldewoche', 'Altersgruppe']) and yaxis_selector.value in ['Meldewoche', 'Altersgruppe']:
-            change_widget_status(True, False, True, True, False, True, False)
+            if mode_selector.value == 'Hospitalisierung':
+                change_widget_status(True, True, True, True, False, True, False) 
+            else:
+                change_widget_status(True, False, True, True, False, True, False)
+            return
+
+
+            
             return 
 
         if (xaxis_selector.value in ['Meldewoche', 'Geschlecht']) and yaxis_selector.value in ['Meldewoche', 'Geschlecht']:
@@ -147,14 +169,14 @@ def make_doc(doc):
                 p.x_range.factors = list(reversed(df['Bundesland'].unique()))
                 p.y_range.factors = settings.agegroup_list
 
-                update_hovertool('Bundesland', 'x', 'Altersgruppe', 'y')
+                #update_hovertool('Bundesland', 'x', 'Altersgruppe', 'y')
             else:
                 x_axis = df['Altersgruppe']
                 y_axis = df['Bundesland']
                 p.x_range.factors = settings.agegroup_list
                 p.y_range.factors = list(reversed(df['Bundesland'].unique()))
 
-                update_hovertool('Bundesland', 'y', 'Altersgruppe', 'x')
+                #update_hovertool('Bundesland', 'y', 'Altersgruppe', 'x')
 
 
             
@@ -189,6 +211,7 @@ def make_doc(doc):
         if (xaxis_selector.value in ['Meldewoche', 'Altersgruppe']) and yaxis_selector.value in ['Meldewoche', 'Altersgruppe']:
 
             df = cases.select_week_agegroup_data(gender_map.get(gender_selector.value),state_selector.value, mode_selector.value )
+          
 
             if xaxis_selector.value == "Meldewoche":
                 x_axis = df['week']
@@ -269,9 +292,11 @@ def make_doc(doc):
             x=x_axis,
             y=y_axis,
             inzidenz=df['inzidenz'],
-            cases=df['cases'],
             population=df['population'],
+            cases=df['cases']
             )
+
+       
 
         update_week_range()
 
@@ -355,7 +380,7 @@ def make_doc(doc):
         height=160)
 
     week_selector = Select(
-        title="Kalenderwoche", 
+        title="Meldewoche", 
         options=cases.week_list + ['Alle'], 
         value=cases.week_list[-1])
 
@@ -384,11 +409,13 @@ def make_doc(doc):
         formatters={'@inzidenz': 'printf'}
     )
 
+
+
     mapper = LinearColorMapper(
         palette='Turbo256',  
         low=0,
         high=500,
-        nan_color = 'gray'
+        nan_color = 'grey'
     )
 
     p = figure(
@@ -428,6 +455,7 @@ def make_doc(doc):
 
     xaxis_selector.on_change('value', lambda attr, old, new: update_widgets())
     yaxis_selector.on_change('value', lambda attr, old, new: update_widgets())
+    mode_selector.on_change('value', lambda attr, old, new: update_widgets())
 
 
     date_range_slider.on_change('value', lambda attr, old, new: update_week_range())
