@@ -12,6 +12,7 @@ from bokeh.models import (BasicTicker,
                           Select,
                           DateRangeSlider,
                           MultiSelect,
+                          MultiChoice,
                           Div,
                           Button,
                           Spacer)
@@ -44,20 +45,20 @@ cases = CovidCases()
 
 def make_doc(doc):
 
-    
-    def change_widget_status(age_group_selector_disabled, gender_selector_disabled, state_multiselect_disabled,reset_states_button_disabled, 
-        state_selector_disabled, week_selector_disabled, date_range_slider_disabled):
+
+    def change_widget_status(age_group_selector_disabled, gender_selector_disabled, state_multichoice_disabled,reset_states_button_disabled,
+        state_selector_disabled, week_selector_disabled, date_range_slider_disabled, agegroup_multichoice_disabled):
         '''
             function to enable/disable set of widgets
         '''
-
         age_group_selector.disabled = age_group_selector_disabled
         gender_selector.disabled = gender_selector_disabled
-        state_multiselect.disabled = state_multiselect_disabled
+        state_multichoice.disabled = state_multichoice_disabled
         reset_states_button.disabled =  reset_states_button_disabled
-        state_selector.disabled = state_selector_disabled  
-        week_selector.disabled = week_selector_disabled  
+        state_selector.disabled = state_selector_disabled
+        week_selector.disabled = week_selector_disabled
         date_range_slider.disabled = date_range_slider_disabled
+        agegroup_multichoice.disabled = agegroup_multichoice_disabled
 
 
     def update_widgets():
@@ -80,41 +81,38 @@ def make_doc(doc):
 
         if (xaxis_selector.value in ['Bundesland', 'Meldewoche']) and yaxis_selector.value in ['Bundesland', 'Meldewoche']:
             if mode_selector.value == 'Hospitalisierung':
-                change_widget_status(False, True, False, False, True, True, False) 
+                change_widget_status(False, True, False, False, True, True, False, True)
             else:
-                change_widget_status(False, False, False, False, True, True, False)
+                change_widget_status(False, False, False, False, True, True, False, True)
             return
 
         if (xaxis_selector.value in ['Bundesland', 'Altersgruppe']) and yaxis_selector.value in ['Bundesland', 'Altersgruppe']:
 
             if mode_selector.value == 'Hospitalisierung':
-                change_widget_status(True, True, False, False, True, False, True) 
+                change_widget_status(True, True, False, False, True, False, True, False)
             else:
-                change_widget_status(True, False, False, False, True, False, True)
-            return 
+                change_widget_status(True, False, False, False, True, False, True, False)
+            return
 
         if (xaxis_selector.value in ['Bundesland', 'Geschlecht']) and yaxis_selector.value in ['Bundesland', 'Geschlecht']:
-            change_widget_status(False, True, False, False, True, False, True)
-            return 
+            change_widget_status(False, True, False, False, True, False, True, True)
+            return
 
         if (xaxis_selector.value in ['Meldewoche', 'Altersgruppe']) and yaxis_selector.value in ['Meldewoche', 'Altersgruppe']:
             if mode_selector.value == 'Hospitalisierung':
-                change_widget_status(True, True, True, True, False, True, False) 
+                change_widget_status(True, True, True, True, False, True, False, False)
             else:
-                change_widget_status(True, False, True, True, False, True, False)
+                change_widget_status(True, False, True, True, False, True, False, False)
             return
 
 
-            
-            return 
-
         if (xaxis_selector.value in ['Meldewoche', 'Geschlecht']) and yaxis_selector.value in ['Meldewoche', 'Geschlecht']:
-            change_widget_status(False, True, True, True, False, True, False)
-            return 
+            change_widget_status(False, True, True, True, False, True, False, True)
+            return
 
         if (xaxis_selector.value in ['Altersgruppe', 'Geschlecht']) and yaxis_selector.value in ['Altersgruppe', 'Geschlecht']:
-            change_widget_status(True, True, True, True, False, False, True)
-            return 
+            change_widget_status(True, True, True, True, False, False, True, True)
+            return
 
 
     def update_hovertool(cat_name1, cat1, cat_name2, cat2):
@@ -143,20 +141,20 @@ def make_doc(doc):
             if xaxis_selector.value == "Bundesland":
                 x_axis = df['Bundesland']
                 y_axis = df['week']
-     
+
                 p.x_range.factors = list(reversed(df['Bundesland'].unique()))
-                p.y_range.factors = cases.week_list 
+                p.y_range.factors = cases.week_list
 
                 update_hovertool('Bundesland', 'x', 'Meldewoche', 'y')
             else:
                 x_axis = df['week']
                 y_axis = df['Bundesland']
-                p.x_range.factors = cases.week_list 
+                p.x_range.factors = cases.week_list
                 p.y_range.factors = list(reversed(df['Bundesland'].unique()))
 
-                update_hovertool('Bundesland', 'y', 'Meldewoche', 'x') 
+                update_hovertool('Bundesland', 'y', 'Meldewoche', 'x')
 
-            p.title.text = f"Kategorie: {mode_selector.value}, Altersgruppe: {age_group_selector.value}, Geschlecht: {gender_selector.value}"           
+            p.title.text = f"Kategorie: {mode_selector.value}, Altersgruppe: {age_group_selector.value}, Geschlecht: {gender_selector.value}"
 
 
         if (xaxis_selector.value in ['Bundesland', 'Altersgruppe']) and yaxis_selector.value in ['Bundesland', 'Altersgruppe']:
@@ -165,21 +163,21 @@ def make_doc(doc):
             if xaxis_selector.value == "Bundesland":
                 x_axis = df['Bundesland']
                 y_axis = df['Altersgruppe']
-     
+
                 p.x_range.factors = list(reversed(df['Bundesland'].unique()))
                 p.y_range.factors = settings.agegroup_list
 
-                #update_hovertool('Bundesland', 'x', 'Altersgruppe', 'y')
+                update_hovertool('Bundesland', 'x', 'Altersgruppe', 'y')
             else:
                 x_axis = df['Altersgruppe']
                 y_axis = df['Bundesland']
                 p.x_range.factors = settings.agegroup_list
                 p.y_range.factors = list(reversed(df['Bundesland'].unique()))
 
-                #update_hovertool('Bundesland', 'y', 'Altersgruppe', 'x')
+                update_hovertool('Bundesland', 'y', 'Altersgruppe', 'x')
 
 
-            
+
             p.title.text = f"Kategorie: {mode_selector.value}, Meldewoche: {week_selector.value}, Geschlecht: {gender_selector.value}, Meldewoche: {selected_week}"
 
 
@@ -191,7 +189,7 @@ def make_doc(doc):
             if xaxis_selector.value == "Bundesland":
                 x_axis = df['Bundesland']
                 y_axis = df['Geschlecht']
-     
+
                 p.x_range.factors = list(reversed(df['Bundesland'].unique()))
                 p.y_range.factors = ['M', 'W']
 
@@ -211,13 +209,13 @@ def make_doc(doc):
         if (xaxis_selector.value in ['Meldewoche', 'Altersgruppe']) and yaxis_selector.value in ['Meldewoche', 'Altersgruppe']:
 
             df = cases.select_week_agegroup_data(gender_map.get(gender_selector.value),state_selector.value, mode_selector.value )
-          
+
 
             if xaxis_selector.value == "Meldewoche":
                 x_axis = df['week']
                 y_axis = df['Altersgruppe']
-     
-                p.x_range.factors = cases.week_list 
+
+                p.x_range.factors = cases.week_list
                 p.y_range.factors = settings.agegroup_list
 
                 update_hovertool('Meldewoche', 'x', 'Altersgruppe', 'y')
@@ -241,8 +239,8 @@ def make_doc(doc):
             if xaxis_selector.value == "Meldewoche":
                 x_axis = df['week']
                 y_axis = df['Geschlecht']
-     
-                p.x_range.factors = cases.week_list 
+
+                p.x_range.factors = cases.week_list
                 p.y_range.factors = ['M', 'W']
 
                 update_hovertool('Meldewoche', 'x', 'Geschlecht', 'y')
@@ -251,7 +249,7 @@ def make_doc(doc):
                 x_axis = df['Geschlecht']
                 y_axis = df['week']
                 p.x_range.factors = ['M', 'W']
-                p.y_range.factors = cases.week_list  
+                p.y_range.factors = cases.week_list
 
                 update_hovertool('Meldewoche', 'y', 'Geschlecht', 'x')
 
@@ -266,7 +264,7 @@ def make_doc(doc):
             if xaxis_selector.value == "Altersgruppe":
                 x_axis = df['Altersgruppe']
                 y_axis = df['Geschlecht']
-     
+
                 p.x_range.factors = settings.agegroup_list
                 p.y_range.factors = ['M', 'W']
 
@@ -277,7 +275,7 @@ def make_doc(doc):
                 y_axis = df['Altersgruppe']
 
                 p.x_range.factors = ['M', 'W']
-                p.y_range.factors = settings.agegroup_list  
+                p.y_range.factors = settings.agegroup_list
 
                 update_hovertool('Altersgruppe', 'y', 'Geschlecht', 'x')
 
@@ -296,9 +294,12 @@ def make_doc(doc):
             cases=df['cases']
             )
 
-       
+
 
         update_week_range()
+        #update_state_range()
+        update_age_state_range()
+
 
 
     def update_week_range():
@@ -316,54 +317,88 @@ def make_doc(doc):
             week_list = [f"{start_year}-{week:02d}" for week in range(start_week,stop_week+1)]
             week_list += [f"{end_year}-{week:02d}" for week in range(1,end_week+1)]
 
-        
         if xaxis_selector.value == "Meldewoche":
             p.x_range.factors = week_list
         elif yaxis_selector.value == "Meldewoche":
             p.y_range.factors = week_list
 
 
-    def update_state_range():
-        if xaxis_selector.value == "Bundesland":
-            p.x_range.factors = sorted(state_multiselect.value)
-        elif yaxis_selector.value == "Bundesland":
-            p.y_range.factors = sorted(state_multiselect.value)
-        
-        
-    def reset_states():
-        state_multiselect.value = []
-        update()
 
+    def update_age_state_range():
+        if len(agegroup_multichoice.value) == 0:
+            agegroup_list = settings.agegroup_list
+        else:
+            agegroup_list = sorted(agegroup_multichoice.value)
+
+        if len(state_multichoice.value) == 0:
+            states_list = cases.states_list
+        else:
+            states_list = sorted(state_multichoice.value)
+
+        temp = pd.DataFrame(source.data)
+
+        if xaxis_selector.value == "Altersgruppe":
+            mapper.low = temp[temp['x'].isin(agegroup_list)].agg({'inzidenz': 'min'})[0]
+            mapper.high = temp[temp['x'].isin(agegroup_list)].agg({'inzidenz': 'max'})[0]
+            p.x_range.factors = agegroup_list
+        elif yaxis_selector.value == "Altersgruppe":
+            mapper.low = temp[temp['y'].isin(agegroup_list)].agg({'inzidenz': 'min'})[0]
+            mapper.high = temp[temp['y'].isin(agegroup_list)].agg({'inzidenz': 'max'})[0]
+            p.y_range.factors = agegroup_list
+
+        if xaxis_selector.value == "Bundesland":
+            mapper.low = temp[temp['x'].isin(states_list)].agg({'inzidenz': 'min'})[0]
+            mapper.high = temp[temp['x'].isin(states_list)].agg({'inzidenz': 'max'})[0]
+            p.x_range.factors = states_list
+        elif yaxis_selector.value == "Bundesland":
+            mapper.low = temp[temp['y'].isin(states_list)].agg({'inzidenz': 'min'})[0]
+            mapper.high = temp[temp['y'].isin(states_list)].agg({'inzidenz': 'max'})[0]
+            p.y_range.factors = states_list
+
+        if (xaxis_selector.value == "Altersgruppe") and (yaxis_selector.value == 'Bundesland'):
+            mapper.low = temp[(temp['x'].isin(agegroup_list)) & (temp['y'].isin(states_list))].agg({'inzidenz': 'min'})[0]
+            mapper.high = temp[(temp['x'].isin(agegroup_list)) & (temp['y'].isin(states_list))].agg({'inzidenz': 'max'})[0]
+            p.x_range.factors = agegroup_list
+            p.y_range.factors = states_list
+        elif (yaxis_selector.value == "Altersgruppe") and (xaxis_selector.value == 'Bundesland'):
+            mapper.low = temp[temp['y'].isin(agegroup_list) & (temp['x'].isin(states_list))].agg({'inzidenz': 'min'})[0]
+            mapper.high = temp[temp['y'].isin(agegroup_list) & (temp['x'].isin(states_list))].agg({'inzidenz': 'max'})[0]
+            p.y_range.factors = agegroup_list
+            p.x_range.factors = states_list
+
+    def reset_states():
+        state_multichoice.value = []
+        update()
 
     # Generate input controls
 
     age_group_selector = Select(
         title="Altersgruppe",
-        options=['Alle', 'A00-A04', 'A05-A14', 'A15-A34', 'A35-A59', 'A60-A79', 'A80+'], 
+        options=['Alle', 'A00-A04', 'A05-A14', 'A15-A34', 'A35-A59', 'A60-A79', 'A80+'],
         value='Alle')
 
     gender_selector = Select(
-        title="Geschlecht", 
-        options=['Alle', 'Männlich', 'Weiblich'], 
+        title="Geschlecht",
+        options=['Alle', 'Männlich', 'Weiblich'],
         value='Alle')
 
     mode_selector = Select(
-        title="Kategorie", 
+        title="Kategorie",
         options=['Infektionsfälle', 'Todesfälle', 'Hospitalisierung'], value='Infektionsfälle')
 
     xaxis_selector = Select(
-        title="x-Achse", 
-        options=['Bundesland', 'Meldewoche', 'Altersgruppe', 'Geschlecht'], 
+        title="x-Achse",
+        options=['Bundesland', 'Meldewoche', 'Altersgruppe', 'Geschlecht'],
         value='Meldewoche')
 
     yaxis_selector = Select(
-        title="y-Achse", 
-        options=['Bundesland', 'Meldewoche', 'Altersgruppe', 'Geschlecht'], 
+        title="y-Achse",
+        options=['Bundesland', 'Meldewoche', 'Altersgruppe', 'Geschlecht'],
         value='Bundesland')
 
     state_selector = Select(
-        title="Bundesland", 
-        options=['Alle'] + settings.state_list, 
+        title="Bundesland",
+        options=['Alle'] + settings.state_list,
         value='Bremen')
 
     date_range_slider = DateRangeSlider(
@@ -373,32 +408,37 @@ def make_doc(doc):
         format = '%Y-%W',
         step=7)
 
-    state_multiselect =  MultiSelect(
+    state_multichoice =  MultiChoice(
         title="Bundesländer Auswahl",
-        value=[], 
-        options=settings.state_list, 
-        height=160)
+        value=[],
+        options=settings.state_list)
+
+
+    agegroup_multichoice =  MultiChoice(
+        title="Altersgruppen Auswahl",
+        value=[],
+        options=settings.agegroup_list)
 
     week_selector = Select(
-        title="Meldewoche", 
-        options=cases.week_list + ['Alle'], 
+        title="Meldewoche",
+        options=cases.week_list + ['Alle'],
         value=cases.week_list[-1])
 
     reset_states_button = Button(
-        label="Bundesländer zurücksetzen", 
+        label="Bundesländer zurücksetzen",
         button_type="success")
 
     generate_heatmap_button = Button(
-        label="Heatmap erzeugen", 
-        button_type="success", 
-        width=120, 
+        label="Heatmap erzeugen",
+        button_type="success",
+        width=120,
         height=50)
 
 
     # Initial setup of figure
 
     source = ColumnDataSource(data=dict(x=[], y=[], inzidenz=[], cases=[], population=[]))
- 
+
     hover = HoverTool(
         tooltips=[("Inzidenz", "@inzidenz{%0,0.2f}"),
                   ("Bundesland", "@y"),
@@ -412,7 +452,7 @@ def make_doc(doc):
 
 
     mapper = LinearColorMapper(
-        palette='Turbo256',  
+        palette='Turbo256',
         low=0,
         high=500,
         nan_color = 'grey'
@@ -454,13 +494,17 @@ def make_doc(doc):
     p.add_layout(color_bar, 'right')
 
     xaxis_selector.on_change('value', lambda attr, old, new: update_widgets())
+
     yaxis_selector.on_change('value', lambda attr, old, new: update_widgets())
     mode_selector.on_change('value', lambda attr, old, new: update_widgets())
 
 
     date_range_slider.on_change('value', lambda attr, old, new: update_week_range())
-    state_multiselect.on_change('value', lambda attr, old, new: update_state_range())
-    
+    state_multichoice.on_change('value', lambda attr, old, new: update_age_state_range())
+    agegroup_multichoice.on_change('value', lambda atrr, old, new: update_age_state_range())
+
+
+
     #reset_states_button.on_click(reset_states)
     generate_heatmap_button.on_click(update)
 
@@ -470,21 +514,18 @@ def make_doc(doc):
 
     main_inputs = row([mode_selector, xaxis_selector, yaxis_selector], sizing_mode='stretch_width')
 
-    bottom_left = column([age_group_selector, gender_selector], sizing_mode='stretch_width')
+    bottom_left = column([age_group_selector, agegroup_multichoice, gender_selector], sizing_mode='stretch_width')
     bottom_right = column([state_selector, week_selector, date_range_slider], sizing_mode='stretch_width')
 
-    bottom = row([column([generate_heatmap_button], sizing_mode='stretch_width'), Spacer(width=20), bottom_left, Spacer(width=20), bottom_right])
+    bottom = row([column([generate_heatmap_button, state_multichoice], sizing_mode='stretch_width'), Spacer(width=20), bottom_left, Spacer(width=20), bottom_right])
 
-    l = grid([Spacer(height=30), main_inputs, Spacer(height=20), row([p], sizing_mode="scale_width"), Spacer(height=20), bottom], sizing_mode='stretch_width') 
+    l = grid([Spacer(height=30), main_inputs, Spacer(height=20), row([p], sizing_mode="scale_width"), Spacer(height=20), bottom], sizing_mode='stretch_width')
 
     update_widgets()
     update()
 
     doc.add_root(l)
     doc.title = "Covid Heatmap"
-    # doc.theme = Theme(filename="theme.yaml")
-
-
 
 
 # Flask and Bokeh server setup
