@@ -5,5 +5,5 @@ agegroup_list = ['A00-A04', 'A05-A14', 'A15-A34', 'A35-A59', 'A60-A79', 'A80+']
 bokeh_server_port = 5106
 bokeh_server_address = "localhost"  # 0.0.0.0
 bokeh_server_url = "http://localhost:5106/bokehserver/" #'https://covid.plenge.me/bokehserver/'
-
+bokeh_server_url2 = "http://localhost:5106/bokehserver2/" 
 flask_server_address = "localhost"    # "covid.plenge.me"

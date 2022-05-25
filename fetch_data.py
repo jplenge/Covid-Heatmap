@@ -12,4 +12,4 @@ df=df.query(f"week != '{current_week}'")
 
 
 df.groupby(['Bundesland','Altersgruppe', 'Geschlecht','week'], as_index=False)[['AnzahlFall', 'AnzahlTodesfall']].sum() \
-    .to_csv("data/RKI_COVID19.csv")
+    .to_csv("data/RKI_COVID19.csv", index=False)
